@@ -3,6 +3,10 @@ export const roomsDB = {
     nextRoomId: 1,
 
     createRoom(player) {
+        if (!player || !player.name) {
+            console.warn("createRoom: invalid player", player);
+        }
+
         const room = {
             roomId: this.nextRoomId++,
             roomUsers: [{ name: player.name, index: player.index }]
@@ -13,7 +17,7 @@ export const roomsDB = {
 
     addUserToRoom(roomId, player) {
         const room = this.rooms.find(r => r.roomId === roomId);
-        if (!room) return null;
+        if (!room || !player|| !player.name) return null;
         room.roomUsers.push({ name: player.name, index: player.index });
         return room;
     },

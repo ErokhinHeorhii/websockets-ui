@@ -2,7 +2,20 @@ import { WebSocket } from 'ws';
 import {roomsDB} from "./database/rooms.js";
 
 export function handleRegistration(ws, data, playersDB, clients) {
-    const { name, password } = data.data;
+
+    let payload = data.data;
+
+    if (typeof payload === 'string') {
+        try {
+            payload = JSON.parse(payload);
+        } catch (e) {
+            console.error('Ошибка парсинга data.data:', e);
+            return;
+        }
+    }
+
+    const { name, password } = payload;
+
     let player = playersDB.findByName(name);
     let error = false;
     let errorText = '';
@@ -19,8 +32,9 @@ export function handleRegistration(ws, data, playersDB, clients) {
     if (!error) {
         player.ws = ws;
         ws.playerIndex = player.index;
+    } else {
+        player = null;
     }
-
     const response = {
         type: 'reg',
         data: JSON.stringify({
