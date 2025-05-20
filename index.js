@@ -1,7 +1,7 @@
 import {WebSocketServer} from 'ws';
 import {httpServer} from "./src/http_server/index.js";
 import {playersDB} from './src/websocket_server/database/players.js';
-import {handleRegistration, broadcastRooms} from './src/websocket_server/utils.js';
+import {handleRegistration, broadcastRooms, handleAttack} from './src/websocket_server/utils.js';
 import {roomsDB} from "./src/websocket_server/database/rooms.js";
 import {gamesDB} from "./src/websocket_server/database/games.js";
 
@@ -40,15 +40,13 @@ wss.on('connection', (ws) => {
                         id: 0
                     }));
                 }
-            }
-            else if (parsedMessage.type === 'create_room') {
+            } else if (parsedMessage.type === 'create_room') {
                 const player = playersDB.findByIndex(ws.playerIndex);
                 if (player) {
                     roomsDB.createRoom(player);
                     broadcastRooms(roomsDB, clients);
                 }
-            }
-            else if (parsedMessage.type === 'add_user_to_room') {
+            } else if (parsedMessage.type === 'add_user_to_room') {
                 const player = playersDB.findByIndex(ws.playerIndex);
 
                 let roomData;
@@ -100,9 +98,8 @@ wss.on('connection', (ws) => {
                     roomsDB.removeRoom(roomId);
                     broadcastRooms(roomsDB, clients);
                 }
-            }
-            else if (parsedMessage.type === 'add_ships') {
-                const { gameId, ships, indexPlayer } = typeof parsedMessage.data === 'string'
+            } else if (parsedMessage.type === 'add_ships') {
+                const {gameId, ships, indexPlayer} = typeof parsedMessage.data === 'string'
                     ? JSON.parse(parsedMessage.data)
                     : parsedMessage.data;
 
@@ -131,18 +128,25 @@ wss.on('connection', (ws) => {
                         if (p.ws && p.ws.readyState === p.ws.OPEN) {
                             p.ws.send(JSON.stringify({
                                 type: 'start_game',
-                                data: {
+                                data: JSON.stringify({
                                     ships: p.ships,
                                     currentPlayerIndex: p.idPlayer
-                                },
+                                }),
                                 id: 0
                             }));
                         }
                     });
                 }
             }
-        }
-        catch (error) {
+            else if (parsedMessage.type === 'attack') {
+                const data = typeof parsedMessage.data === 'string'
+                    ? JSON.parse(parsedMessage.data)
+                    : parsedMessage.data;
+
+                handleAttack(ws, data);
+            }
+
+        } catch (error) {
             console.error('Error parsing message:', error);
         }
     });
